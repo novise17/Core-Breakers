@@ -1,9 +1,5 @@
 export class Ability {
-    constructor({
-        name,
-        cooldown = 1000,
-        energyCost = 10
-    }) {
+    constructor({ name, cooldown = 1000, energyCost = 10 }) {
         this.name = name;
         this.cooldown = cooldown;
         this.energyCost = energyCost;
@@ -12,20 +8,16 @@ export class Ability {
     }
 
     canUse(fighter) {
-        const now = Date.now();
-
         return (
-            now - this.lastUsed >= this.cooldown &&
+            Date.now() - this.lastUsed >= this.cooldown &&
             fighter.energy >= this.energyCost
         );
     }
 
     use(fighter, enemy) {
-        const now = Date.now();
-
         if (!this.canUse(fighter)) return false;
 
-        this.lastUsed = now;
+        this.lastUsed = Date.now();
         fighter.energy -= this.energyCost;
 
         this.activate(fighter, enemy);
@@ -33,8 +25,7 @@ export class Ability {
         return true;
     }
 
-    // OVERRIDE THIS IN EACH ABILITY
     activate(fighter, enemy) {
-        console.log(`${this.name} used!`);
+        // override
     }
 }
