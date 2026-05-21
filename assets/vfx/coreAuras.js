@@ -1,7 +1,3 @@
-// ============================================
-// FILE: vfx/coreAuras.js
-// ============================================
-
 import { CoreVisuals } from "./coreVisuals.js";
 
 export function drawCoreAura(ctx, fighter) {
@@ -19,13 +15,7 @@ export function drawCoreAura(ctx, fighter) {
     ctx.fillStyle = visual.aura;
 
     ctx.beginPath();
-    ctx.arc(
-        x,
-        y,
-        80 + Math.random() * 15,
-        0,
-        Math.PI * 2
-    );
+    ctx.arc(x, y, 85 + Math.random() * 15, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
