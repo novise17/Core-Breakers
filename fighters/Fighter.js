@@ -5,52 +5,81 @@
 import { triggerShake } from "../vfx/screenShake.js";
 import { spawnParticles } from "../vfx/particleSystem.js";
 import { AbilityRegistry } from "../abilities/abilityRegistry.js";
+import { CoreVisuals } from "../vfx/coreVisuals.js";
 import { drawCoreAura } from "../vfx/coreAuras.js";
 
 export class Fighter {
 
     constructor(name, x, color, controls, core = null) {
 
+        // ============================
+        // IDENTITY
+        // ============================
         this.name = name;
         this.core = core;
 
+        // ============================
+        // VISUAL DATA
+        // ============================
+        this.visual = CoreVisuals[this.core] || CoreVisuals.fire;
+
+        // ============================
+        // POSITION
+        // ============================
         this.x = x;
         this.y = 0;
 
+        // ============================
+        // SIZE
+        // ============================
         this.width = 60;
         this.height = 120;
 
+        // ============================
+        // MOVEMENT
+        // ============================
         this.velocityY = 0;
         this.speed = 6;
         this.jumpForce = -15;
         this.gravity = 0.7;
+        this.isGrounded = false;
 
-        this.color = color;
-
+        // ============================
+        // STATS
+        // ============================
         this.health = 100;
         this.maxHealth = 100;
 
         this.energy = 100;
         this.maxEnergy = 100;
 
+        // ============================
+        // STATE
+        // ============================
         this.hitstun = 0;
         this.invulnerable = false;
 
+        // ============================
+        // COMBAT
+        // ============================
         this.combo = 0;
         this.facing = 1;
 
+        // ============================
+        // INPUT
+        // ============================
         this.controls = controls;
 
+        // ============================
+        // PROJECTILES
+        // ============================
         this.projectiles = [];
 
+        // ============================
+        // ABILITIES
+        // ============================
         this.abilities = [];
 
-        // unique systems (future mechanics)
-        this.heat = 0;
-        this.nodes = 0;
-        this.mass = 0;
-
-        // load abilities safely
         if (this.core) this.loadAbilities();
     }
 
@@ -91,13 +120,13 @@ export class Fighter {
 
         if (keys[this.controls.left]) {
 
-            this.x -= this.speed;
+            this.x -= this.speed * (this.visual.speedBoost || 1);
             this.facing = -1;
         }
 
         if (keys[this.controls.right]) {
 
-            this.x += this.speed;
+            this.x += this.speed * (this.visual.speedBoost || 1);
             this.facing = 1;
         }
 
@@ -118,6 +147,20 @@ export class Fighter {
         }
 
         this.regenEnergy();
+
+        // ============================================
+        // CORE TRAIL EFFECT
+        // ============================================
+
+        if (this.visual.trail) {
+
+            spawnParticles(
+                this.x + this.width / 2,
+                this.y + this.height / 2,
+                this.visual.aura,
+                1
+            );
+        }
     }
 
     regenEnergy() {
@@ -140,18 +183,24 @@ export class Fighter {
 
         this.hitstun = 20;
 
-        triggerShake(knockback * 0.5);
+        triggerShake(
+            knockback * (this.visual.shakeIntensity || 0.5)
+        );
 
         spawnParticles(
             this.x + this.width / 2,
             this.y + this.height / 2,
-            "orange",
+            this.visual.aura,
             12
         );
 
         this.invulnerable = true;
 
-        setTimeout(() => this.invulnerable = false, 300);
+        setTimeout(() => {
+
+            this.invulnerable = false;
+
+        }, 300);
     }
 
     // ============================================
@@ -160,7 +209,7 @@ export class Fighter {
 
     draw(ctx) {
 
-        // 🌌 CORE AURA (THIS IS WHAT YOU ASKED ABOUT)
+        // CORE AURA
         if (this.core) {
 
             drawCoreAura(ctx, this);
