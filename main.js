@@ -2,14 +2,16 @@
 // FILE: main.js
 // ============================================
 
-import { Fighter } from "./fighters/Fighter.js";
-
-import { Blaze } from "./fighters/Blaze.js";
-// later add: Volt, Frost, Nova, Shade, Titano
-
 import { MatchManager } from "./engine/matchManager.js";
 
 import { CharacterSelect } from "./ui/characterSelect.js";
+
+import { Blaze } from "./fighters/Blaze.js";
+import { Volt } from "./fighters/Volt.js";
+import { Frost } from "./fighters/Frost.js";
+import { Nova } from "./fighters/Nova.js";
+import { Shade } from "./fighters/Shade.js";
+import { Titano } from "./fighters/Titano.js";
 
 import {
     applyShake
@@ -38,33 +40,22 @@ canvas.height = 600;
 let state = "select"; // select | fight
 
 // ============================================
-// ROSTER
+// ROSTER (REAL FIGHTERS)
 // ============================================
 
 const roster = [
 
-    new Blaze(200, {
-        left: "a",
-        right: "d",
-        jump: "w",
-        attack: " "
-    }),
+    new Blaze(0, { left: "a", right: "d", jump: "w", attack: " " }),
 
-    new Blaze(200, {
-        left: "a",
-        right: "d",
-        jump: "w",
-        attack: " "
-    }),
+    new Volt(0, { left: "a", right: "d", jump: "w", attack: " " }),
 
-    new Blaze(200, {
-        left: "a",
-        right: "d",
-        jump: "w",
-        attack: " "
-    })
+    new Frost(0, { left: "a", right: "d", jump: "w", attack: " " }),
 
-    // later replace with Volt, Frost, Nova, Shade, Titano
+    new Nova(0, { left: "a", right: "d", jump: "w", attack: " " }),
+
+    new Shade(0, { left: "a", right: "d", jump: "w", attack: " " }),
+
+    new Titano(0, { left: "a", right: "d", jump: "w", attack: " " })
 ];
 
 // ============================================
@@ -74,10 +65,10 @@ const roster = [
 const selectScreen = new CharacterSelect(roster);
 
 // ============================================
-// MATCH (created later)
+// MATCH
 // ============================================
 
-let match;
+let match = null;
 
 // ============================================
 // INPUT
@@ -100,12 +91,23 @@ window.addEventListener("keydown", (e) => {
 
             state = "fight";
         }
-
-        return;
     }
 
-    // FIGHT INPUTS WILL GO HERE
+    if (state === "fight") {
+
+        // attacks handled in update loop (cleaner)
+    }
 });
+
+// ============================================
+// UPDATE KEYS
+// ============================================
+
+const keys = {};
+
+window.addEventListener("keydown", (e) => keys[e.key] = true);
+
+window.addEventListener("keyup", (e) => keys[e.key] = false);
 
 // ============================================
 // UPDATE
@@ -113,21 +115,30 @@ window.addEventListener("keydown", (e) => {
 
 function update() {
 
-    if (state === "fight") {
+    if (state !== "fight") return;
 
-        match.update();
+    match.update();
 
-        if (!match.roundOver && !match.matchOver) {
+    if (!match.roundOver && !match.matchOver) {
 
-            match.player1.move(keys, canvas);
+        match.player1.move(keys, canvas);
 
-            match.player2.move(keys, canvas);
+        match.player2.move(keys, canvas);
+
+        if (keys[match.player1.controls.attack]) {
+
+            match.player1.attack(match.player2);
+        }
+
+        if (keys[match.player2.controls.attack]) {
+
+            match.player2.attack(match.player1);
         }
     }
 }
 
 // ============================================
-// DRAW CHARACTER SELECT
+// DRAW SELECT
 // ============================================
 
 function drawSelect() {
@@ -136,46 +147,30 @@ function drawSelect() {
 
     ctx.font = "40px Arial";
 
-    ctx.fillText(
-        "SELECT YOUR FIGHTERS",
-        350,
-        80
-    );
+    ctx.fillText("SELECT FIGHTERS", 420, 80);
 
     roster.forEach((f, i) => {
 
-        const x = 200 + i * 200;
+        const x = 150 + i * 160;
 
         const y = 250;
 
         ctx.fillStyle =
-            i === selectScreen.selectedP1
-                ? "red"
-                : i === selectScreen.selectedP2
-                ? "blue"
+            i === selectScreen.selectedIndex
+                ? "yellow"
                 : "gray";
 
         ctx.fillRect(x, y, 80, 120);
 
         ctx.fillStyle = "white";
 
-        ctx.fillText(
-            "F",
-            x + 30,
-            y + 70
-        );
+        ctx.fillText(f.name || "F", x + 10, y + 70);
     });
 
     ctx.fillText(
-        `P1 Ready: ${selectScreen.confirmedP1}`,
+        `Phase: ${selectScreen.phase}`,
         50,
         500
-    );
-
-    ctx.fillText(
-        `P2 Ready: ${selectScreen.confirmedP2}`,
-        50,
-        550
     );
 }
 
@@ -228,15 +223,11 @@ function drawUI() {
 
     ctx.font = "30px Arial";
 
-    ctx.fillText(
-        `Time: ${Math.ceil(match.timer)}`,
-        canvas.width / 2 - 60,
-        50
-    );
+    ctx.fillText(`Time: ${Math.ceil(match.timer)}`, 520, 50);
 
     ctx.fillText(
-        `P1 ${match.score.p1} - ${match.score.p2} P2`,
-        canvas.width / 2 - 80,
+        `Score ${match.score.p1} - ${match.score.p2}`,
+        480,
         90
     );
 }
@@ -247,14 +238,9 @@ function drawUI() {
 
 function loop() {
 
-    if (state === "select") {
+    if (state === "select") drawSelect();
 
-        drawSelect();
-
-    } else {
-
-        drawFight();
-    }
+    else drawFight();
 
     requestAnimationFrame(loop);
 }
