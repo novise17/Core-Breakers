@@ -8,92 +8,62 @@ export class CharacterSelect {
 
         this.fighters = fighters;
 
-        this.selectedP1 = 0;
+        this.selectedIndex = 0;
 
-        this.selectedP2 = 1;
+        this.p1Choice = null;
 
-        this.confirmedP1 = false;
+        this.p2Choice = null;
 
-        this.confirmedP2 = false;
-
-        this.activePlayer = 1; // 1 or 2
+        this.phase = "p1"; // p1 → p2 → done
     }
-
-    // ============================
-    // INPUT HANDLING
-    // ============================
 
     handleInput(key) {
 
         // MOVE LEFT
         if (key === "a" || key === "ArrowLeft") {
 
-            this.moveSelection(-1);
+            this.selectedIndex =
+                (this.selectedIndex - 1 + this.fighters.length) %
+                this.fighters.length;
         }
 
         // MOVE RIGHT
         if (key === "d" || key === "ArrowRight") {
 
-            this.moveSelection(1);
+            this.selectedIndex =
+                (this.selectedIndex + 1) %
+                this.fighters.length;
         }
 
         // CONFIRM
         if (key === " " || key === "Enter") {
 
-            this.confirmSelection();
+            if (this.phase === "p1") {
+
+                this.p1Choice = this.selectedIndex;
+
+                this.phase = "p2";
+
+            } else if (this.phase === "p2") {
+
+                this.p2Choice = this.selectedIndex;
+
+                this.phase = "done";
+            }
         }
     }
-
-    moveSelection(dir) {
-
-        if (this.activePlayer === 1 && !this.confirmedP1) {
-
-            this.selectedP1 =
-                (this.selectedP1 + dir + this.fighters.length) %
-                this.fighters.length;
-        }
-
-        if (this.activePlayer === 2 && !this.confirmedP2) {
-
-            this.selectedP2 =
-                (this.selectedP2 + dir + this.fighters.length) %
-                this.fighters.length;
-        }
-    }
-
-    confirmSelection() {
-
-        if (this.activePlayer === 1) {
-
-            this.confirmedP1 = true;
-
-            this.activePlayer = 2;
-
-        } else {
-
-            this.confirmedP2 = true;
-        }
-    }
-
-    // ============================
-    // READY CHECK
-    // ============================
 
     isReady() {
 
-        return this.confirmedP1 && this.confirmedP2;
+        return this.phase === "done";
     }
-
-    // ============================
-    // GET FIGHTERS
-    // ============================
 
     getFighters() {
 
         return {
-            p1: this.fighters[this.selectedP1],
+            p1: this.fighters[this.p1Choice],
 
-            p2: this.fighters[this.selectedP2]
+            p2: this.fighters[this.p2Choice]
         };
     }
 }
