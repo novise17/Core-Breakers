@@ -4,7 +4,12 @@
 
 import { Fighter } from "./fighters/Fighter.js";
 
+import { Blaze } from "./fighters/Blaze.js";
+// later add: Volt, Frost, Nova, Shade, Titano
+
 import { MatchManager } from "./engine/matchManager.js";
+
+import { CharacterSelect } from "./ui/characterSelect.js";
 
 import {
     applyShake
@@ -27,43 +32,79 @@ canvas.width = 1200;
 canvas.height = 600;
 
 // ============================================
-// PLAYERS
+// GAME STATE
 // ============================================
 
-const player1 = new Fighter("Blaze", 200, "red", {
-    left: "a",
-    right: "d",
-    jump: "w",
-    attack: " "
-});
-
-const player2 = new Fighter("Volt", 900, "blue", {
-    left: "ArrowLeft",
-    right: "ArrowRight",
-    jump: "ArrowUp",
-    attack: "Enter"
-});
+let state = "select"; // select | fight
 
 // ============================================
-// MATCH SYSTEM
+// ROSTER
 // ============================================
 
-const match = new MatchManager(player1, player2);
+const roster = [
+
+    new Blaze(200, {
+        left: "a",
+        right: "d",
+        jump: "w",
+        attack: " "
+    }),
+
+    new Blaze(200, {
+        left: "a",
+        right: "d",
+        jump: "w",
+        attack: " "
+    }),
+
+    new Blaze(200, {
+        left: "a",
+        right: "d",
+        jump: "w",
+        attack: " "
+    })
+
+    // later replace with Volt, Frost, Nova, Shade, Titano
+];
+
+// ============================================
+// CHARACTER SELECT
+// ============================================
+
+const selectScreen = new CharacterSelect(roster);
+
+// ============================================
+// MATCH (created later)
+// ============================================
+
+let match;
 
 // ============================================
 // INPUT
 // ============================================
 
-const keys = {};
-
 window.addEventListener("keydown", (e) => {
 
-    keys[e.key] = true;
-});
+    if (state === "select") {
 
-window.addEventListener("keyup", (e) => {
+        selectScreen.handleInput(e.key);
 
-    keys[e.key] = false;
+        if (selectScreen.isReady()) {
+
+            const fighters = selectScreen.getFighters();
+
+            match = new MatchManager(
+                fighters.p1,
+                fighters.p2
+            );
+
+            state = "fight";
+        }
+
+        return;
+    }
+
+    // FIGHT INPUTS WILL GO HERE
 });
 
 // ============================================
@@ -72,31 +113,77 @@ window.addEventListener("keyup", (e) => {
 
 function update() {
 
-    match.update();
+    if (state === "fight") {
 
-    if (!match.roundOver && !match.matchOver) {
+        match.update();
 
-        player1.move(keys, canvas);
+        if (!match.roundOver && !match.matchOver) {
 
-        player2.move(keys, canvas);
+            match.player1.move(keys, canvas);
 
-        if (keys[player1.controls.attack]) {
-
-            player1.attack(player2);
-        }
-
-        if (keys[player2.controls.attack]) {
-
-            player2.attack(player1);
+            match.player2.move(keys, canvas);
         }
     }
 }
 
 // ============================================
-// DRAW
+// DRAW CHARACTER SELECT
 // ============================================
 
-function draw() {
+function drawSelect() {
+
+    ctx.fillStyle = "white";
+
+    ctx.font = "40px Arial";
+
+    ctx.fillText(
+        "SELECT YOUR FIGHTERS",
+        350,
+        80
+    );
+
+    roster.forEach((f, i) => {
+
+        const x = 200 + i * 200;
+
+        const y = 250;
+
+        ctx.fillStyle =
+            i === selectScreen.selectedP1
+                ? "red"
+                : i === selectScreen.selectedP2
+                ? "blue"
+                : "gray";
+
+        ctx.fillRect(x, y, 80, 120);
+
+        ctx.fillStyle = "white";
+
+        ctx.fillText(
+            "F",
+            x + 30,
+            y + 70
+        );
+    });
+
+    ctx.fillText(
+        `P1 Ready: ${selectScreen.confirmedP1}`,
+        50,
+        500
+    );
+
+    ctx.fillText(
+        `P2 Ready: ${selectScreen.confirmedP2}`,
+        50,
+        550
+    );
+}
+
+// ============================================
+// DRAW FIGHT
+// ============================================
+
+function drawFight() {
 
     ctx.save();
 
@@ -104,20 +191,17 @@ function draw() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // FLOOR
     ctx.fillStyle = "#222";
 
     ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
 
-    // PLAYERS
-    player1.draw(ctx);
+    match.player1.draw(ctx);
 
-    player2.draw(ctx);
+    match.player2.draw(ctx);
 
-    // PROJECTILES
-    player1.updateProjectiles(ctx, player2);
+    match.player1.updateProjectiles(ctx, match.player2);
 
-    player2.updateProjectiles(ctx, player1);
+    match.player2.updateProjectiles(ctx, match.player1);
 
     updateParticles(ctx);
 
@@ -132,15 +216,16 @@ function draw() {
 
 function drawUI() {
 
-    // HEALTH
     ctx.fillStyle = "red";
-    ctx.fillRect(20, 20, player1.health * 3, 20);
+
+    ctx.fillRect(20, 20, match.player1.health * 3, 20);
 
     ctx.fillStyle = "blue";
-    ctx.fillRect(canvas.width - player2.health * 3 - 20, 20, player2.health * 3, 20);
 
-    // TIMER
+    ctx.fillRect(canvas.width - match.player2.health * 3 - 20, 20, match.player2.health * 3, 20);
+
     ctx.fillStyle = "white";
+
     ctx.font = "30px Arial";
 
     ctx.fillText(
@@ -149,36 +234,11 @@ function drawUI() {
         50
     );
 
-    // SCORE
     ctx.fillText(
         `P1 ${match.score.p1} - ${match.score.p2} P2`,
         canvas.width / 2 - 80,
         90
     );
-
-    // ROUND
-    ctx.fillText(
-        `Round ${match.currentRound}`,
-        canvas.width / 2 - 60,
-        130
-    );
-
-    // WIN STATE
-    if (match.matchOver) {
-
-        const winner =
-            match.score.p1 > match.score.p2
-                ? "PLAYER 1 WINS"
-                : "PLAYER 2 WINS";
-
-        ctx.fillStyle = "yellow";
-
-        ctx.fillText(
-            winner,
-            canvas.width / 2 - 120,
-            200
-        );
-    }
 }
 
 // ============================================
@@ -187,9 +247,14 @@ function drawUI() {
 
 function loop() {
 
-    update();
+    if (state === "select") {
 
-    draw();
+        drawSelect();
+
+    } else {
+
+        drawFight();
+    }
 
     requestAnimationFrame(loop);
 }
