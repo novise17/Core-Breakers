@@ -1,22 +1,16 @@
-// ============================================
-// FILE: engine/SpriteAnimator.js
-// ============================================
-
 export class SpriteAnimator {
 
     constructor(image, frameWidth, frameHeight, frameCount, fps = 10) {
 
         this.image = image;
-
         this.frameWidth = frameWidth;
         this.frameHeight = frameHeight;
 
         this.frameCount = frameCount;
 
         this.currentFrame = 0;
-
-        this.fps = fps;
         this.tick = 0;
+        this.fps = fps;
     }
 
     update() {
@@ -35,14 +29,14 @@ export class SpriteAnimator {
         }
     }
 
-    draw(ctx, x, y, width, height, flip = false) {
+    draw(ctx, x, y, w, h, flip = false) {
 
         ctx.save();
 
         if (flip) {
 
             ctx.scale(-1, 1);
-            x = -x - width;
+            x = -x - w;
         }
 
         ctx.drawImage(
@@ -53,8 +47,8 @@ export class SpriteAnimator {
             this.frameHeight,
             x,
             y,
-            width,
-            height
+            w,
+            h
         );
 
         ctx.restore();
