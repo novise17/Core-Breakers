@@ -1,29 +1,53 @@
+// ============================================
+// FILE: abilities/Ability.js
+// ============================================
+
 export class Ability {
-    constructor({ name, cooldown = 1000, energyCost = 10 }) {
+
+    constructor({
+        name,
+        cooldown,
+        cost,
+        execute
+    }) {
+
         this.name = name;
-        this.cooldown = cooldown;
-        this.energyCost = energyCost;
-        this.lastUsed = 0;
+
+        this.cooldownMax = cooldown;
+
+        this.cooldown = 0;
+
+        this.cost = cost;
+
+        this.execute = execute; // function(fighter, enemy)
     }
 
     canUse(fighter) {
+
         return (
-            Date.now() - this.lastUsed >= this.cooldown &&
-            fighter.energy >= this.energyCost
+            this.cooldown <= 0 &&
+            fighter.energy >= this.cost
         );
     }
 
     use(fighter, enemy) {
+
         if (!this.canUse(fighter)) return false;
 
-        this.lastUsed = Date.now();
-        fighter.energy -= this.energyCost;
+        fighter.energy -= this.cost;
 
-        this.activate(fighter, enemy);
+        this.cooldown = this.cooldownMax;
+
+        this.execute(fighter, enemy);
+
         return true;
     }
 
-    activate(fighter, enemy) {
-        // override
+    update() {
+
+        if (this.cooldown > 0) {
+
+            this.cooldown--;
+        }
     }
 }
