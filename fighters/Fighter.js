@@ -11,11 +11,9 @@ export class Fighter {
 
         this.name = name;
 
-        // POSITION
         this.x = x;
         this.y = 0;
 
-        // SIZE
         this.width = 60;
         this.height = 120;
 
@@ -25,46 +23,58 @@ export class Fighter {
         this.jumpForce = -15;
         this.gravity = 0.7;
 
-        // VISUAL
         this.color = color;
 
         // STATS
         this.health = 100;
-
         this.energy = 100;
         this.maxEnergy = 100;
-
         this.armor = 0;
 
         // STATE
         this.isGrounded = false;
-
-        this.isAttacking = false;
-
-        this.attackCooldown = false;
-
+        this.hitstun = 0;
         this.invulnerable = false;
 
         // COMBAT
         this.combo = 0;
-
-        this.hitstun = 0;
-
         this.knockbackX = 0;
-
         this.knockbackDecay = 0.8;
 
         // INPUT
         this.controls = controls;
-
-        // DIRECTION
         this.facing = 1;
 
         // PROJECTILES
         this.projectiles = [];
 
-        // ABILITIES
-        this.abilities = {};
+        // ⚙️ ABILITY SYSTEM
+        this.abilities = [];
+
+        // 🧬 UNIQUE MECHANIC HOOKS
+        this.heat = 0;
+        this.nodes = 0;
+        this.mass = 0;
+    }
+
+    // ============================================
+    // ABILITIES
+    // ============================================
+
+    updateAbilities() {
+
+        for (let ability of this.abilities) {
+
+            ability.update();
+        }
+    }
+
+    useAbility(index, enemy) {
+
+        if (this.abilities[index]) {
+
+            this.abilities[index].use(this, enemy);
+        }
     }
 
     // ============================================
@@ -73,7 +83,8 @@ export class Fighter {
 
     move(keys, canvas) {
 
-        // HITSTUN
+        this.updateAbilities();
+
         if (this.hitstun > 0) {
 
             this.hitstun--;
@@ -85,36 +96,27 @@ export class Fighter {
             return;
         }
 
-        // LEFT
         if (keys[this.controls.left]) {
 
             this.x -= this.speed;
-
             this.facing = -1;
         }
 
-        // RIGHT
         if (keys[this.controls.right]) {
 
             this.x += this.speed;
-
             this.facing = 1;
         }
 
-        // JUMP
         if (keys[this.controls.jump] && this.isGrounded) {
 
             this.velocityY = this.jumpForce;
-
             this.isGrounded = false;
         }
 
-        // GRAVITY
         this.y += this.velocityY;
-
         this.velocityY += this.gravity;
 
-        // FLOOR COLLISION
         if (this.y + this.height >= canvas.height) {
 
             this.y = canvas.height - this.height;
@@ -124,20 +126,15 @@ export class Fighter {
             this.isGrounded = true;
         }
 
-        // SCREEN BOUNDS
         if (this.x < 0) this.x = 0;
 
         if (this.x + this.width > canvas.width) {
+
             this.x = canvas.width - this.width;
         }
 
-        // ENERGY REGEN
         this.regenEnergy();
     }
-
-    // ============================================
-    // ENERGY
-    // ============================================
 
     regenEnergy() {
 
@@ -155,7 +152,6 @@ export class Fighter {
 
         if (this.invulnerable) return;
 
-        // ARMOR REDUCTION
         const finalDamage = Math.max(
             damage - this.armor * 0.1,
             1
@@ -163,16 +159,12 @@ export class Fighter {
 
         this.health -= finalDamage;
 
-        // HITSTUN
         this.hitstun = 20;
 
-        // KNOCKBACK
         this.knockbackX = knockback * direction;
 
-        // SCREEN SHAKE
         triggerShake(knockback * 0.5);
 
-        // PARTICLES
         spawnParticles(
             this.x + this.width / 2,
             this.y + this.height / 2,
@@ -180,7 +172,6 @@ export class Fighter {
             12
         );
 
-        // INVULNERABILITY FRAMES
         this.invulnerable = true;
 
         setTimeout(() => {
@@ -196,10 +187,6 @@ export class Fighter {
 
     attack(enemy) {
 
-        if (this.attackCooldown) return;
-
-        this.attackCooldown = true;
-
         const hitbox = {
 
             x: this.facing === 1
@@ -209,82 +196,22 @@ export class Fighter {
             y: this.y + 30,
 
             width: 40,
-
             height: 30
         };
 
         if (
-
             hitbox.x < enemy.x + enemy.width &&
-
             hitbox.x + hitbox.width > enemy.x &&
-
             hitbox.y < enemy.y + enemy.height &&
-
             hitbox.y + hitbox.height > enemy.y
-
         ) {
 
-            enemy.takeHit(
-                10,
-                12,
-                this.facing
-            );
+            enemy.takeHit(10, 12, this.facing);
 
             this.combo++;
-        }
 
-        setTimeout(() => {
-
-            this.attackCooldown = false;
-
-        }, 250);
-    }
-
-    // ============================================
-    // PROJECTILES
-    // ============================================
-
-    updateProjectiles(ctx, enemy) {
-
-        for (let i = 0; i < this.projectiles.length; i++) {
-
-            let p = this.projectiles[i];
-
-            p.x += p.speed;
-
-            ctx.fillStyle = p.color || "orange";
-
-            ctx.fillRect(
-                p.x,
-                p.y,
-                p.width,
-                p.height
-            );
-
-            // COLLISION
-            if (
-
-                p.x < enemy.x + enemy.width &&
-
-                p.x + p.width > enemy.x &&
-
-                p.y < enemy.y + enemy.height &&
-
-                p.y + p.height > enemy.y
-
-            ) {
-
-                enemy.takeHit(
-                    p.damage,
-                    p.knockback || 10,
-                    this.facing
-                );
-
-                this.projectiles.splice(i, 1);
-
-                i--;
-            }
+            // 🔥 HOOK EXAMPLE (used by Blaze later)
+            this.onHit?.(enemy);
         }
     }
 
@@ -294,15 +221,9 @@ export class Fighter {
 
     draw(ctx) {
 
-        // CHARACTER
         ctx.fillStyle = this.color;
 
-        ctx.fillRect(
-            this.x,
-            this.y,
-            this.width,
-            this.height
-        );
+        ctx.fillRect(this.x, this.y, this.width, this.height);
 
         // ENERGY BAR
         ctx.fillStyle = "cyan";
@@ -314,7 +235,6 @@ export class Fighter {
             5
         );
 
-        // INVULNERABILITY FLASH
         if (this.invulnerable) {
 
             ctx.strokeStyle = "white";
