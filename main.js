@@ -8,6 +8,9 @@ import { CharacterSelect } from "./ui/characterSelect.js";
 
 import { IntroScreen } from "./ui/introScreen.js";
 
+import { HUD } from "./ui/hud.js";
+
+// Fighters
 import { Blaze } from "./fighters/Blaze.js";
 import { Volt } from "./fighters/Volt.js";
 import { Frost } from "./fighters/Frost.js";
@@ -15,13 +18,9 @@ import { Nova } from "./fighters/Nova.js";
 import { Shade } from "./fighters/Shade.js";
 import { Titano } from "./fighters/Titano.js";
 
-import {
-    applyShake
-} from "./vfx/screenShake.js";
-
-import {
-    updateParticles
-} from "./vfx/particleSystem.js";
+// VFX
+import { applyShake } from "./vfx/screenShake.js";
+import { updateParticles } from "./vfx/particleSystem.js";
 
 // ============================================
 // CANVAS
@@ -66,6 +65,8 @@ const introScreen = new IntroScreen();
 
 let match = null;
 
+let hud = null;
+
 // ============================================
 // INPUT
 // ============================================
@@ -74,6 +75,7 @@ const keys = {};
 
 window.addEventListener("keydown", (e) => {
 
+    // CHARACTER SELECT INPUT
     if (state === "select") {
 
         selectScreen.handleInput(e.key);
@@ -87,16 +89,19 @@ window.addEventListener("keydown", (e) => {
                 fighters.p2
             );
 
+            hud = new HUD(
+                match.player1,
+                match.player2,
+                match
+            );
+
             introScreen.start();
 
             state = "intro";
         }
     }
-});
 
-// gameplay input
-window.addEventListener("keydown", (e) => {
-
+    // FIGHT INPUT
     keys[e.key] = true;
 });
 
@@ -152,13 +157,15 @@ function update() {
 
 function drawSelect() {
 
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     ctx.fillStyle = "white";
 
     ctx.font = "40px Arial";
 
-    ctx.textAlign = "left";
+    ctx.textAlign = "center";
 
-    ctx.fillText("SELECT FIGHTERS", 420, 80);
+    ctx.fillText("SELECT FIGHTERS", canvas.width / 2, 80);
 
     roster.forEach((f, i) => {
 
@@ -175,14 +182,27 @@ function drawSelect() {
 
         ctx.fillStyle = "white";
 
-        ctx.fillText(f.name, x + 10, y + 70);
+        ctx.fillText(
+            f.name,
+            x + 40,
+            y + 70
+        );
     });
 
     ctx.fillText(
         `Phase: ${selectScreen.phase}`,
-        50,
+        canvas.width / 2,
         500
     );
+}
+
+// ============================================
+// DRAW INTRO
+// ============================================
+
+function drawIntro() {
+
+    introScreen.draw(ctx);
 }
 
 // ============================================
@@ -197,65 +217,26 @@ function drawFight() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // FLOOR
     ctx.fillStyle = "#222";
 
     ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
 
+    // FIGHTERS
     match.player1.draw(ctx);
-
     match.player2.draw(ctx);
 
+    // PROJECTILES
     match.player1.updateProjectiles(ctx, match.player2);
-
     match.player2.updateProjectiles(ctx, match.player1);
 
+    // PARTICLES
     updateParticles(ctx);
 
-    drawUI();
+    // HUD (NEW)
+    hud.draw(ctx, canvas);
 
     ctx.restore();
-}
-
-// ============================================
-// DRAW INTRO
-// ============================================
-
-function drawIntro() {
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "#000";
-
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    introScreen.draw(ctx);
-}
-
-// ============================================
-// UI
-// ============================================
-
-function drawUI() {
-
-    ctx.fillStyle = "red";
-
-    ctx.fillRect(20, 20, match.player1.health * 3, 20);
-
-    ctx.fillStyle = "blue";
-
-    ctx.fillRect(canvas.width - match.player2.health * 3 - 20, 20, match.player2.health * 3, 20);
-
-    ctx.fillStyle = "white";
-
-    ctx.font = "30px Arial";
-
-    ctx.fillText(`Time: ${Math.ceil(match.timer)}`, 520, 50);
-
-    ctx.fillText(
-        `Score ${match.score.p1} - ${match.score.p2}`,
-        480,
-        90
-    );
 }
 
 // ============================================
