@@ -1,4 +1,12 @@
+// ============================================
+// FILE: fighters/Fighter.js
+// ============================================
+
+import { triggerShake } from "../vfx/screenShake.js";
+import { spawnParticles } from "../vfx/particleSystem.js";
+
 export class Fighter {
+
     constructor(name, x, color, controls) {
 
         this.name = name;
@@ -59,9 +67,9 @@ export class Fighter {
         this.abilities = {};
     }
 
-    // =============================
+    // ============================================
     // MOVEMENT
-    // =============================
+    // ============================================
 
     move(keys, canvas) {
 
@@ -116,13 +124,20 @@ export class Fighter {
             this.isGrounded = true;
         }
 
+        // SCREEN BOUNDS
+        if (this.x < 0) this.x = 0;
+
+        if (this.x + this.width > canvas.width) {
+            this.x = canvas.width - this.width;
+        }
+
         // ENERGY REGEN
         this.regenEnergy();
     }
 
-    // =============================
+    // ============================================
     // ENERGY
-    // =============================
+    // ============================================
 
     regenEnergy() {
 
@@ -132,13 +147,12 @@ export class Fighter {
         }
     }
 
-    // =============================
+    // ============================================
     // DAMAGE SYSTEM
-    // =============================
+    // ============================================
 
     takeHit(damage, knockback, direction) {
 
-        // INVULNERABILITY FRAMES
         if (this.invulnerable) return;
 
         // ARMOR REDUCTION
@@ -155,7 +169,18 @@ export class Fighter {
         // KNOCKBACK
         this.knockbackX = knockback * direction;
 
-        // TEMP INVULNERABILITY
+        // SCREEN SHAKE
+        triggerShake(knockback * 0.5);
+
+        // PARTICLES
+        spawnParticles(
+            this.x + this.width / 2,
+            this.y + this.height / 2,
+            "orange",
+            12
+        );
+
+        // INVULNERABILITY FRAMES
         this.invulnerable = true;
 
         setTimeout(() => {
@@ -165,9 +190,9 @@ export class Fighter {
         }, 300);
     }
 
-    // =============================
+    // ============================================
     // BASIC ATTACK
-    // =============================
+    // ============================================
 
     attack(enemy) {
 
@@ -188,7 +213,6 @@ export class Fighter {
             height: 30
         };
 
-        // COLLISION
         if (
 
             hitbox.x < enemy.x + enemy.width &&
@@ -217,9 +241,9 @@ export class Fighter {
         }, 250);
     }
 
-    // =============================
+    // ============================================
     // PROJECTILES
-    // =============================
+    // ============================================
 
     updateProjectiles(ctx, enemy) {
 
@@ -238,7 +262,7 @@ export class Fighter {
                 p.height
             );
 
-            // HIT DETECTION
+            // COLLISION
             if (
 
                 p.x < enemy.x + enemy.width &&
@@ -264,9 +288,9 @@ export class Fighter {
         }
     }
 
-    // =============================
+    // ============================================
     // DRAW
-    // =============================
+    // ============================================
 
     draw(ctx) {
 
@@ -290,7 +314,7 @@ export class Fighter {
             5
         );
 
-        // HIT FLASH
+        // INVULNERABILITY FLASH
         if (this.invulnerable) {
 
             ctx.strokeStyle = "white";
