@@ -1,15 +1,21 @@
-import { Ability } from "../Ability.js";
+export const staticPrison = {
 
-export class StaticPrison extends Ability {
-    constructor() {
-        super({ name: "Static Prison", cooldown: 2500, energyCost: 25 });
-    }
+    name: "Static Prison",
+
+    energyCost: 30,
+
+    cooldown: 10,
 
     activate(fighter, enemy) {
-        enemy.speed = 1;
 
-        setTimeout(() => {
-            enemy.speed = 6;
-        }, 2500);
+        fighter.gainNode();
+
+        enemy.takeHit(
+            fighter.boostDamage(24),
+            20,
+            fighter.facing
+        );
+
+        fighter.chainLightning(enemy);
     }
-}
+};
