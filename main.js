@@ -1,134 +1,56 @@
-// ============================================ //
-// FILE: main.js
-// ECHOES OF ASHERYA - GAME ENTRY POINT
-// ============================================ //
+console.log("Echoes of Asherya - V1 Running");
 
-console.log("MAIN.JS LOADED");
-console.log("GAME IS RUNNING");
+import { Fighter } from "./fighters/fighter.js";
 
-import { CharacterSelect } from "./ui/characterSelect.js";
-import { Fighter } from "./fighters/Fighter.js";
-
-// =============================== //
-// CANVAS SETUP
-// =============================== //
+// CANVAS
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 canvas.width = 1000;
 canvas.height = 600;
 
-// =============================== //
-// INPUT SYSTEM (SINGLE SOURCE)
-// =============================== //
+// INPUT
 const keys = {};
-window.keysRefProxy = keys; // 🔥 GLOBAL INPUT ACCESS FOR FIGHTERS
+window.addEventListener("keydown", e => keys[e.key] = true);
+window.addEventListener("keyup", e => keys[e.key] = false);
 
-window.addEventListener("keydown", (e) => {
-  keys[e.key] = true;
+// PLAYERS
+const player1 = new Fighter("Blaze", 150, "red", {
+  left: "a",
+  right: "d",
+  jump: "w",
+  attack: "z"
 });
 
-window.addEventListener("keyup", (e) => {
-  keys[e.key] = false;
+const player2 = new Fighter("Frost", 700, "cyan", {
+  left: "ArrowLeft",
+  right: "ArrowRight",
+  jump: "ArrowUp",
+  attack: "Enter"
 });
 
-// =============================== //
-// GAME STATE
-// =============================== //
-let gameState = "select";
-
-// =============================== //
-// FIGHTERS
-// =============================== //
-let player1, player2;
-
-// =============================== //
-// START FIGHT
-// =============================== //
-function startFight(p1Data, p2Data) {
-  player1 = new Fighter(
-    p1Data.name,
-    150,
-    p1Data.color,
-    { left: "a", right: "d", jump: "w" }
-  );
-
-  player2 = new Fighter(
-    p2Data.name,
-    700,
-    p2Data.color,
-    { left: "ArrowLeft", right: "ArrowRight", jump: "ArrowUp" }
-  );
-
-  gameState = "fight";
-}
-
-// =============================== //
-// CHARACTER SELECT
-// =============================== //
-const selectScreen = new CharacterSelect(
-  [
-    { name: "Blaze", color: "red", core: "fire" },
-    { name: "Frost", color: "cyan", core: "ice" },
-    { name: "Volt", color: "yellow", core: "lightning" },
-    { name: "Titano", color: "gray", core: "earth" },
-    { name: "Nova", color: "purple", core: "cosmic" },
-    { name: "Shade", color: "black", core: "shadow" }
-  ],
-  startFight
-);
-
-// =============================== //
-// STAGE
-// =============================== //
-function drawStage() {
+// GAME LOOP
+function loop() {
   ctx.fillStyle = "#111";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  // ground
   ctx.fillStyle = "#222";
-  ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
-}
+  ctx.fillRect(0, 560, canvas.width, 40);
 
-// =============================== //
-// MAIN LOOP
-// =============================== //
-function gameLoop() {
-  drawStage();
+  // UPDATE
+  player1.update(keys, canvas, player2);
+  player2.update(keys, canvas, player1);
 
-  if (gameState === "select") {
-    selectScreen.update(keys);
-    selectScreen.draw(ctx, canvas);
-  }
+  // DRAW
+  player1.draw(ctx);
+  player2.draw(ctx);
 
-  if (gameState === "fight") {
-    // UPDATE
-    player1.move(canvas);
-    player2.move(canvas);
-
-    player1.update();
-    player2.update();
-
-    // DRAW
-    player1.draw(ctx);
-    player2.draw(ctx);
-
-    drawUI();
-  }
-
-  requestAnimationFrame(gameLoop);
-}
-
-// =============================== //
-// UI
-// =============================== //
-function drawUI() {
+  // UI
   ctx.fillStyle = "white";
-  ctx.font = "16px Arial";
+  ctx.fillText(`P1 HP: ${player1.hp}`, 20, 20);
+  ctx.fillText(`P2 HP: ${player2.hp}`, 880, 20);
 
-  ctx.fillText(`${player1.name} HP: ${player1.health}`, 20, 30);
-  ctx.fillText(`${player2.name} HP: ${player2.health}`, canvas.width - 200, 30);
+  requestAnimationFrame(loop);
 }
 
-// =============================== //
-// START
-// =============================== //
-gameLoop();
+loop();
