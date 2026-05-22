@@ -1,42 +1,19 @@
-// ============================================
-// FILE: abilities/firestormBarrage.js
-// ============================================
-
-import { Ability } from "./Ability.js";
-
-import { triggerShake } from "../vfx/screenShake.js";
-import { spawnParticles } from "../vfx/particleSystem.js";
-
-export const firestormBarrage = new Ability({
+export const firestormBarrage = {
 
     name: "Firestorm Barrage",
 
-    cooldown: 300,
+    energyCost: 30,
 
-    cost: 35,
+    cooldown: 15,
 
-    execute: (fighter, enemy) => {
+    activate(fighter, enemy) {
 
-        triggerShake(15);
+        fighter.gainHeat(25);
 
-        spawnParticles(
-            enemy.x,
-            enemy.y,
-            "orange",
-            40
+        enemy.takeHit(
+            fighter.boostDamage(24),
+            22,
+            fighter.facing
         );
-
-        enemy.takeHit(20, 25, fighter.facing);
-
-        // 🔥 UNIQUE MECHANIC: Blaze heat system
-        fighter.heat += 20;
-
-        if (fighter.heat > 100) {
-
-            enemy.takeHit(10, 10, fighter.facing);
-        }
-
-        fighter.combo += 2;
-        fighter.energy += 10;
     }
-});
+};
