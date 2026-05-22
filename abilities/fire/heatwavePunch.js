@@ -1,17 +1,23 @@
-import { Ability } from "../Ability.js";
+export const heatwavePunch = {
 
-export class HeatwavePunch extends Ability {
-    constructor() {
-        super({
-            name: "Heatwave Punch",
-            cooldown: 1200,
-            energyCost: 15
-        });
-    }
+    name: "Heatwave Punch",
+
+    energyCost: 15,
+
+    cooldown: 15,
 
     activate(fighter, enemy) {
-        enemy.health -= 18;
 
-        enemy.x += fighter.facing * 30; // knockback
+        // gain heat
+        fighter.gainHeat(12);
+
+        // boosted damage
+        const damage = fighter.boostDamage(14);
+
+        enemy.takeHit(
+            damage,
+            14,
+            fighter.facing
+        );
     }
-}
+};
