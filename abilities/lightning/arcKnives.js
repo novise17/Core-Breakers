@@ -4,7 +4,7 @@ export const arcKnives = {
 
     energyCost: 12,
 
-    cooldown: 45,
+    cooldown: 15,
 
     activate(fighter, enemy) {
 
