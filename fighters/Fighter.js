@@ -1,9 +1,10 @@
+// ============================================
+// FILE: fighters/fighter.js
+// ============================================
+
 import { triggerShake } from "../vfx/screenShake.js";
 import { spawnParticles } from "../vfx/particleSystem.js";
-import { AbilityRegistry } from "../abilities/abilityRegistry.js";
-import { CoreVisuals } from "../vfx/coreVisuals.js";
 import { drawCoreAura } from "../vfx/coreAuras.js";
-import { SpriteAnimator } from "../engine/SpriteAnimator.js";
 
 export class Fighter {
 
@@ -12,66 +13,90 @@ export class Fighter {
         this.name = name;
         this.core = core;
 
-        this.visual = CoreVisuals[this.core];
-
+        // POSITION
         this.x = x;
         this.y = 0;
 
+        // SIZE
         this.width = 60;
         this.height = 120;
 
+        // MOVEMENT
         this.speed = 6;
+        this.baseSpeed = 6;
+
         this.jumpForce = -15;
         this.gravity = 0.7;
 
         this.velocityY = 0;
         this.isGrounded = false;
 
+        // HEALTH
+        this.maxHealth = 100;
         this.health = 100;
+
+        // ENERGY
+        this.maxEnergy = 100;
         this.energy = 100;
 
+        // COMBAT
         this.hitstun = 0;
         this.invulnerable = false;
         this.isKO = false;
 
+        this.combo = 0;
+
+        // DIRECTION
         this.facing = 1;
+
+        // INPUT
         this.controls = controls;
 
-        this.abilities = [];
+        // ============================================
+        // HERO STATE SYSTEM
+        // ============================================
 
-        this.animations = {};
-        this.currentAnim = "idle";
+        this.state = {
 
-        if (this.core) this.loadAbilities();
+            transformed: false,
+
+            meter: 0,
+
+            maxMeter: 100,
+
+            buffActive: false
+        };
+
+        // ============================================
+        // ABILITIES
+        // ============================================
+
+        this.abilities = {
+
+            z: null,
+            x: null,
+            c: null,
+            v: null,
+            u: null
+        };
+
+        // cooldowns
+        this.cooldowns = {
+
+            z: 0,
+            x: 0,
+            c: 0,
+            v: 0,
+            u: 0
+        };
+
+        // VISUALS
+        this.color = color;
     }
 
-    // =========================
-    // SPRITE SYSTEM
-    // =========================
-
-    updateAnimation(state) {
-
-        this.currentAnim = state;
-
-        const anim = this.animations[state];
-
-        if (anim) anim.update();
-    }
-
-    // =========================
-    // ABILITIES
-    // =========================
-
-    loadAbilities() {
-
-        if (!AbilityRegistry[this.core]) return;
-
-        this.abilities = AbilityRegistry[this.core].map(a => a);
-    }
-
-    // =========================
+    // ============================================
     // MOVEMENT
-    // =========================
+    // ============================================
 
     move(keys, canvas) {
 
@@ -83,110 +108,204 @@ export class Fighter {
             return;
         }
 
+        // LEFT
         if (keys[this.controls.left]) {
 
-            this.x -= this.speed * this.visual.speedBoost;
+            this.x -= this.speed;
             this.facing = -1;
         }
 
+        // RIGHT
         if (keys[this.controls.right]) {
 
-            this.x += this.speed * this.visual.speedBoost;
+            this.x += this.speed;
             this.facing = 1;
         }
 
-        if (keys[this.controls.up] && this.isGrounded) {
+        // JUMP
+        if (keys[this.controls.jump] && this.isGrounded) {
 
             this.velocityY = this.jumpForce;
             this.isGrounded = false;
         }
 
-        // animation state
-        if (!this.isGrounded) this.updateAnimation("jump");
-        else if (keys[this.controls.left] || keys[this.controls.right]) this.updateAnimation("run");
-        else this.updateAnimation("idle");
-
+        // GRAVITY
         this.y += this.velocityY;
         this.velocityY += this.gravity;
 
+        // FLOOR
         if (this.y + this.height >= canvas.height) {
 
             this.y = canvas.height - this.height;
+
             this.velocityY = 0;
+
             this.isGrounded = true;
         }
 
-        this.energy = Math.min(100, this.energy + 0.25);
+        // SCREEN BOUNDS
+        if (this.x < 0) this.x = 0;
+
+        if (this.x + this.width > canvas.width) {
+
+            this.x = canvas.width - this.width;
+        }
+
+        // ENERGY REGEN
+        this.energy = Math.min(
+            this.maxEnergy,
+            this.energy + 0.15
+        );
+
+        // UPDATE COOLDOWNS
+        this.updateCooldowns();
     }
 
-    // =========================
-    // DAMAGE + KO SYSTEM
-    // =========================
+    // ============================================
+    // COOLDOWNS
+    // ============================================
 
-    takeHit(damage, knockback) {
+    updateCooldowns() {
 
-        if (this.invulnerable || this.isKO) return;
+        for (let key in this.cooldowns) {
+
+            if (this.cooldowns[key] > 0) {
+
+                this.cooldowns[key]--;
+            }
+        }
+    }
+
+    // ============================================
+    // ABILITY USE
+    // ============================================
+
+    useAbility(key, enemy) {
+
+        const ability = this.abilities[key];
+
+        if (!ability) return;
+
+        // cooldown check
+        if (this.cooldowns[key] > 0) return;
+
+        // energy check
+        if (this.energy < ability.energyCost) return;
+
+        // spend energy
+        this.energy -= ability.energyCost;
+
+        // activate
+        ability.activate(this, enemy);
+
+        // apply cooldown
+        this.cooldowns[key] = ability.cooldown;
+    }
+
+    // ============================================
+    // DAMAGE
+    // ============================================
+
+    takeHit(damage, knockback, direction) {
+
+        if (this.invulnerable) return;
 
         this.health -= damage;
 
-        this.hitstun = 20;
+        this.hitstun = 12;
 
-        triggerShake(knockback * this.visual.shakeIntensity);
+        // knockback
+        this.x += knockback * direction;
 
-        spawnParticles(this.x, this.y, this.visual.aura, 10);
+        // VFX
+        triggerShake(knockback * 0.4);
 
-        if (this.health <= 0) this.KO();
+        spawnParticles(
+            this.x + this.width / 2,
+            this.y + this.height / 2,
+            this.color,
+            10
+        );
 
+        // invulnerability
         this.invulnerable = true;
 
-        setTimeout(() => this.invulnerable = false, 300);
+        setTimeout(() => {
+
+            this.invulnerable = false;
+
+        }, 250);
+
+        // KO
+        if (this.health <= 0) {
+
+            this.health = 0;
+
+            this.isKO = true;
+        }
     }
 
-    KO() {
-
-        this.isKO = true;
-        this.hitstun = 999;
-
-        triggerShake(30);
-
-        spawnParticles(this.x, this.y, this.visual.aura, 60);
-
-        this.updateAnimation("ko");
-
-        window.gameTimeScale = 0.25;
-
-        setTimeout(() => window.gameTimeScale = 1, 600);
-    }
-
-    // =========================
+    // ============================================
     // DRAW
-    // =========================
+    // ============================================
 
     draw(ctx) {
 
-        if (this.core) drawCoreAura(ctx, this);
+        drawCoreAura(ctx, this);
 
-        const anim = this.animations[this.currentAnim];
+        // body
+        ctx.fillStyle = this.color;
 
-        if (anim) {
+        ctx.fillRect(
+            this.x,
+            this.y,
+            this.width,
+            this.height
+        );
 
-            anim.draw(
-                ctx,
-                this.x,
-                this.y,
-                this.width,
-                this.height,
-                this.facing === -1
+        // transformed glow
+        if (this.state.transformed) {
+
+            ctx.strokeStyle = "white";
+
+            ctx.lineWidth = 4;
+
+            ctx.strokeRect(
+                this.x - 2,
+                this.y - 2,
+                this.width + 4,
+                this.height + 4
             );
-
-        } else {
-
-            ctx.fillStyle = "white";
-            ctx.fillRect(this.x, this.y, this.width, this.height);
         }
+
+        // health bar
+        ctx.fillStyle = "red";
+
+        ctx.fillRect(
+            this.x,
+            this.y - 20,
+            this.health,
+            8
+        );
 
         // energy bar
         ctx.fillStyle = "cyan";
-        ctx.fillRect(this.x, this.y - 10, this.energy, 5);
+
+        ctx.fillRect(
+            this.x,
+            this.y - 10,
+            this.energy,
+            5
+        );
+
+        // meter bar
+        ctx.fillStyle = "gold";
+
+        ctx.fillRect(
+            this.x,
+            this.y - 30,
+            this.state.meter,
+            6
+        );
     }
 }
