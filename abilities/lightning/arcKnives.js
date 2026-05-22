@@ -1,12 +1,23 @@
-import { Ability } from "../Ability.js";
+export const arcKnives = {
 
-export class ArcKnives extends Ability {
-    constructor() {
-        super({ name: "Arc Knives", cooldown: 1000, energyCost: 12 });
-    }
+    name: "Arc Knives",
+
+    energyCost: 12,
+
+    cooldown: 45,
 
     activate(fighter, enemy) {
-        enemy.health -= 12;
-        enemy.x += fighter.facing * 20;
+
+        fighter.gainNode();
+
+        const damage = fighter.boostDamage(12);
+
+        enemy.takeHit(
+            damage,
+            10,
+            fighter.facing
+        );
+
+        fighter.chainLightning(enemy);
     }
-}
+};
